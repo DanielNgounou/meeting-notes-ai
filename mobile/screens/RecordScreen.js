@@ -2,8 +2,8 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Audio } from 'expo-av';
 import { useState } from 'react';
 
-export default function HomeScreen() {
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+export default function RecordScreen() {
+  const [recording, setRecording] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
 
   const startRecording = async () => {
@@ -28,8 +28,6 @@ export default function HomeScreen() {
 
   const stopRecording = async () => {
     try {
-      if (!recording) return;
-
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
       console.log('Recording saved at:', uri);
@@ -43,20 +41,20 @@ export default function HomeScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ fontSize: 22, marginBottom: 20 }}>
-        {isRecording ? 'Recording…' : 'Meeting Notes App'}
+      <Text style={{ marginBottom: 20 }}>
+        {isRecording ? 'Recording...' : 'Tap to record your meeting'}
       </Text>
 
       <TouchableOpacity
         onPress={isRecording ? stopRecording : startRecording}
         style={{
           backgroundColor: isRecording ? 'red' : 'black',
-          padding: 20,
-          borderRadius: 10,
+          padding: 30,
+          borderRadius: 50,
         }}
       >
         <Text style={{ color: 'white' }}>
-          {isRecording ? 'STOP' : 'START RECORDING'}
+          {isRecording ? 'STOP' : 'RECORD'}
         </Text>
       </TouchableOpacity>
     </View>
