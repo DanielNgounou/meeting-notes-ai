@@ -1,146 +1,249 @@
+// React Native basic UI components
 import { View, Text, TouchableOpacity } from 'react-native';
+
+// Expo Audio API (used for microphone recording)
 import { Audio } from 'expo-av';
+
+// React hooks
 import { useState, useEffect } from 'react';
+
+// Icons (mic, pause, stop)
 import { Ionicons } from '@expo/vector-icons';
 
 export default function RecordScreen() {
+  /* =======================
+     STATE VARIABLES
+     ======================= */
+
+  // Stores the active recording object from Expo
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
+
+  // Indicates whether recording is currently active
   const [isRecording, setIsRecording] = useState(false);
+
+  // Stores elapsed recording time (in seconds)
   const [seconds, setSeconds] = useState(0);
 
-  // Timer
+  /* =======================
+     TIMER LOGIC
+     ======================= */
+
+  // This effect runs when isRecording changes
   useEffect(() => {
     let interval: any;
+
     if (isRecording) {
+      // If recording started, increase timer every second
       interval = setInterval(() => {
         setSeconds((prev) => prev + 1);
       }, 1000);
     } else {
+      // If recording stopped, reset timer
       clearInterval(interval);
       setSeconds(0);
     }
+
+    // Cleanup interval when component unmounts or state changes
     return () => clearInterval(interval);
   }, [isRecording]);
 
+  // Convert seconds to mm:ss format
   const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+    const minutes = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
   };
+
+  /* =======================
+     START RECORDING
+     ======================= */
 
   const startRecording = async () => {
-    await Audio.requestPermissionsAsync();
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: true,
-      playsInSilentModeIOS: true,
-    });
+    try {
+      // Ask user for microphone permission
+      await Audio.requestPermissionsAsync();
 
-    const { recording } = await Audio.Recording.createAsync(
-      Audio.RecordingOptionsPresets.HIGH_QUALITY
-    );
+      // Configure phone audio mode for recording
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
 
-    setRecording(recording);
-    setIsRecording(true);
+      // Create a new audio recording
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+
+      // Save recording object in state
+      setRecording(recording);
+
+      // Switch UI to recording mode
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Failed to start recording', error);
+    }
   };
+
+  /* =======================
+     STOP RECORDING
+     ======================= */
 
   const stopRecording = async () => {
-    if (!recording) return;
-    await recording.stopAndUnloadAsync();
-    const uri = recording.getURI();
-    console.log('Saved at:', uri);
+    try {
+      if (!recording) return;
 
-    setRecording(null);
-    setIsRecording(false);
+      // Stop recording and save file
+      await recording.stopAndUnloadAsync();
+
+      // Get local file URI
+      const uri = recording.getURI();
+
+      // Log URI (later used for saving or uploading)
+      console.log('Recording saved at:', uri);
+
+      // Clear recording state
+      setRecording(null);
+      setIsRecording(false);
+    } catch (error) {
+      console.error('Failed to stop recording', error);
+    }
   };
 
-  return (
-    <View style={{ flex: 1, backgroundColor: '#fff', alignItems: 'center' }}>
-      {/* Header */}
-      <View style={{ marginTop: 60, alignItems: 'center' }}>
-        <Text style={{ fontSize: 18, fontWeight: '600' }}>
-          Hello, Vanessa
-        </Text>
-        <Text style={{ color: '#999', marginTop: 4 }}>
-          Welcome to MeetingNotes
-        </Text>
-      </View>
+  /* =======================
+     UI RENDER
+     ======================= */
 
-      {/* Main content */}
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        {isRecording ? (
-          <>
-            <Ionicons name="mic" size={60} color="red" />
-            <Text style={{ marginTop: 12, fontSize: 16 }}>
-              Recording…
-            </Text>
+ return (
+  <View
+    style={{
+      flex: 1,
+      backgroundColor: '#FFFFFF',
+      paddingHorizontal: 24,
+    }}
+  >
+    {/* ===== Header ===== */}
+    <View style={{ marginTop: 48 }}>
+      <Text
+        style={{
+          fontSize: 20,
+          fontWeight: '800',
+          textAlign: 'left',
+        }}
+      >
+        Hello, Vanessa
+      </Text>
 
-            {/* Fake waveform (placeholder) */}
-            <View
-              style={{
-                width: 180,
-                height: 30,
-                backgroundColor: '#eee',
-                borderRadius: 20,
-                marginVertical: 20,
-              }}
-            />
+      <Text
+        style={{
+          fontSize: 14,
+          color: '#9E9E9E',
+          textAlign: 'left',
+          marginTop: 6,
+        }}
+      >
+        Welcome to MeetingNotes
+      </Text>
+    </View>
 
-            <Text style={{ fontSize: 18, marginBottom: 30 }}>
-              {formatTime(seconds)}
-            </Text>
+    {/* ===== Main Content ===== */}
+    <View
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      {!isRecording ? (
+        <>
+          {/* Mic Button */}
+          <TouchableOpacity
+            onPress={startRecording}
+            style={{
+              width: 96,
+              height: 96,
+              borderRadius: 48,
+              backgroundColor: '#000',
+              justifyContent: 'center',
+              alignItems: 'center',
+              elevation: 6, // Android shadow
+            }}
+          >
+            <Ionicons name="mic" size={36} color="#fff" />
+          </TouchableOpacity>
 
-            {/* Controls */}
-            <View style={{ flexDirection: 'row', gap: 30 }}>
-              <TouchableOpacity
-                onPress={stopRecording}
-                style={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: 30,
-                  backgroundColor: '#000',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                <Ionicons name="square" size={22} color="#fff" />
-              </TouchableOpacity>
+          {/* Instruction */}
+          <Text
+            style={{
+              marginTop: 18,
+              fontSize: 14,
+              color: '#7A7A7A',
+            }}
+          >
+            Tap to record your meeting
+          </Text>
+        </>
+      ) : (
+        <>
+          {/* Recording State */}
+          <Ionicons name="mic" size={54} color="red" />
+          <Text style={{ 
+            marginTop: 10, 
+            fontSize: 18,
+            fontWeight:"800" }}>
+            Recording…
+          </Text>
 
-              <TouchableOpacity
-                style={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: 30,
-                  backgroundColor: '#ccc',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                <Ionicons name="pause" size={22} color="#000" />
-              </TouchableOpacity>
-            </View>
-          </>
-        ) : (
-          <>
+          <View
+            style={{
+              width: 160,
+              height: 28,
+              backgroundColor: '#ECECEC',
+              borderRadius: 16,
+              marginVertical: 18,
+            }}
+          />
+
+          <Text style={{ fontSize: 18, fontWeight: "600"}}>
+            {formatTime(seconds)}
+          </Text>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              marginTop: 28,
+              gap: 28,
+            }}
+          >
             <TouchableOpacity
-              onPress={startRecording}
+              onPress={stopRecording}
               style={{
-                width: 90,
-                height: 90,
-                borderRadius: 45,
+                width: 56,
+                height: 56,
+                borderRadius: 28,
                 backgroundColor: '#000',
                 justifyContent: 'center',
                 alignItems: 'center',
               }}
             >
-              <Ionicons name="mic" size={36} color="#fff" />
+              <Ionicons name="square" size={20} color="#fff" />
             </TouchableOpacity>
 
-            <Text style={{ marginTop: 20, color: '#666' }}>
-              Tap to record your meeting
-            </Text>
-          </>
-        )}
-      </View>
+            <TouchableOpacity
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: '#D9D9D9',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <Ionicons name="pause" size={20} color="#000" />
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
     </View>
-  );
+  </View>
+);
 }
