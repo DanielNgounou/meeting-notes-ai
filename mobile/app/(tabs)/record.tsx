@@ -28,6 +28,12 @@ import { Ionicons } from '@expo/vector-icons';
 //React hooks
 import { useState, useEffect, useRef } from 'react';
 
+
+
+//Importing database projects
+import { insertOrGetGroup, getAllGroups } from '@/src/database/groupQueries';
+
+
 export default function RecordScreen() {
 
     if (
@@ -68,10 +74,23 @@ export default function RecordScreen() {
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [meetingName, setMeetingName] = useState('');
     const [groupName, setGroupName] = useState('');
-    const [groups, setGroups] = useState(['SEG 2025', 'Life group']);
+    const [groups, setGroups] = useState<string[]>([]);
+
 
     // Stop Guard for stop recording
     const [isStopping, setIsStopping] = useState(false);
+
+
+
+    //Loads group on mount
+    useEffect(() => {
+        const loadGroups = async () => {
+            const data = await getAllGroups();
+            setGroups(data);
+        };
+        loadGroups();
+    }, []);
+
 
 
 
@@ -282,31 +301,46 @@ export default function RecordScreen() {
         ]
     );
     };
+
+
+
     /*==========SAVE BUTTON ============*/
     const confirmSaveRecording = async () => {
-    if (!recording) return;
+        if (!recording) return;
 
-    try {
-        await recording.stopAndUnloadAsync(); // ✅ final stop
+        try {
+            // 1️⃣ Final stop
+            await recording.stopAndUnloadAsync();
+            const uri = recording.getURI();
 
-        const uri = recording.getURI();
-        console.log('Saved recording at:', uri);
+            // 2️⃣ Insert or fetch group
+            const groupId = await insertOrGetGroup(groupName);
 
-        // TODO: persist metadata (meetingName, groupName)
+            console.log('Saved recording:', {
+            uri,
+            meetingName,
+            groupId,
+            });
 
-    } catch (error) {
-        console.error('Failed to save recording', error);
-    } finally {
-        // Reset everything
-        setRecording(null);
-        setIsRecording(false);
-        setIsPaused(false);
-        setSeconds(0);
-        
-        setShowSaveModal(false);
-        resetSaveMeetingData();
-    }
+            // 3️⃣ Refresh groups list (important!)
+            const updatedGroups = await getAllGroups();
+            setGroups(updatedGroups);
+
+            // TODO: insert meeting into meetings table next
+
+        } catch (error) {
+            console.error('Failed to save recording', error);
+        } finally {
+            // 4️⃣ Reset UI
+            setRecording(null);
+            setIsRecording(false);
+            setIsPaused(false);
+            setSeconds(0);
+            setShowSaveModal(false);
+            resetSaveMeetingData();
+        }
     };
+
 
 
     //==============CANCEL BUTTON resumes recording ===================//
