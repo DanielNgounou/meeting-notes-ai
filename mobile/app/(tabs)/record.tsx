@@ -4,6 +4,8 @@ import LottieView from 'lottie-react-native';
 
 // React Native basic UI components
 import { View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
+import { LayoutAnimation, Platform, UIManager } from 'react-native';
+
 
 
 // Expo Audio API (used for microphone recording)
@@ -20,6 +22,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect, useRef } from 'react';
 
 export default function RecordScreen() {
+
+    if (
+        Platform.OS === 'android' &&
+        UIManager.setLayoutAnimationEnabledExperimental
+        ) {
+        UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+
   /* =======================
      STATE VARIABLES
      ======================= */
@@ -37,14 +47,15 @@ export default function RecordScreen() {
   const [isPaused, setIsPaused] = useState(false);
 
   // Animated values for waveform bars
-    const wave1 = useRef(new Animated.Value(0.3)).current;
-    const wave2 = useRef(new Animated.Value(0.6)).current;
-    const wave3 = useRef(new Animated.Value(0.4)).current;
-    const wave4 = useRef(new Animated.Value(0.7)).current;
     const waveAnimation = useRef<Animated.CompositeAnimation | null>(null);
 
     // Variable for Lottie
     const waveRef = useRef<LottieView>(null);
+
+    // Animation values
+    const idleOpacity = useRef(new Animated.Value(1)).current;
+    const recordOpacity = useRef(new Animated.Value(0)).current;
+
 
 
 
@@ -92,6 +103,43 @@ export default function RecordScreen() {
 
 
 
+
+/* =======================
+    LAYOUT ANIMATION EFFECTS
+   ======================= */
+   useEffect(() => {
+        if (isRecording) {
+            Animated.parallel([
+            Animated.timing(idleOpacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.timing(recordOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            ]).start();
+        } else {
+            Animated.parallel([
+            Animated.timing(idleOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.timing(recordOpacity, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            ]).start();
+        }
+    }, [isRecording]);
+
+
+
+
   /* =======================
      START RECORDING
      ======================= */
@@ -99,7 +147,9 @@ export default function RecordScreen() {
   const startRecording = async () => {
     try {
       // Ask user for microphone permission
+
       await Audio.requestPermissionsAsync();
+
 
       // Configure phone audio mode for recording
       await Audio.setAudioModeAsync({
@@ -129,6 +179,7 @@ export default function RecordScreen() {
   const stopRecording = async () => {
     try {
       if (!recording) return;
+
 
       // Stop recording and save file
       await recording.stopAndUnloadAsync();
@@ -250,9 +301,15 @@ export default function RecordScreen() {
             alignItems: 'center',
         }}
         >
-        {!isRecording ? (
-            <>
-            {/* Mic Button */}
+            {/* ===== IDLE (Tap to record) ===== */}
+            <Animated.View
+            pointerEvents={isRecording ? 'none' : 'auto'}
+            style={{
+                opacity: idleOpacity,
+                position: 'absolute',
+                alignItems: 'center',
+            }}
+            >
             <TouchableOpacity
                 onPress={startRecording}
                 style={{
@@ -262,13 +319,12 @@ export default function RecordScreen() {
                 backgroundColor: '#000',
                 justifyContent: 'center',
                 alignItems: 'center',
-                elevation: 6, // Android shadow
+                
                 }}
             >
                 <Ionicons name="mic" size={36} color="#fff" />
             </TouchableOpacity>
 
-            {/* Instruction */}
             <Text
                 style={{
                 marginTop: 18,
@@ -278,79 +334,88 @@ export default function RecordScreen() {
             >
                 Tap to record your meeting
             </Text>
-            </>
-        ) : (
-            <>
-            {/* Recording State */}
-            <Ionicons name="mic" size={54} color="red" />
-            <Text style={{ 
-                marginTop: 10, 
-                fontSize: 18,
-                fontWeight:"800" }}>
-                {isPaused ? 'Paused' : 'Recording...'}
-            </Text>
-
-            {/* Lottie Sound Wave */}
-            <LottieView
-                ref={waveRef}
-                source={require('../../assets/animations/waveform.json')}
-                autoPlay={false}
-                loop={true}
-                style={{
-                    width: 900,
-                    height: 100,
-                    marginVertical: 18,
-                }}
-            />
+            </Animated.View>
 
 
+        
+       {/* ===== RECORDING ===== */}
+        <Animated.View
+            pointerEvents={isRecording ? 'auto' : 'none'}
+            style={{
+                opacity: recordOpacity,
+                alignItems: 'center',
+            }}
+        >
+        {/* Recording State */}
+        <Ionicons name="mic" size={54} color="red" />
+        <Text
+            style={{
+            marginTop: 10,
+            fontSize: 18,
+            fontWeight: '800',
+            }}
+        >
+            {isPaused ? 'Paused' : 'Recording...'}
+        </Text>
 
-            <Text style={{ fontSize: 18, fontWeight: "600"}}>
-                {formatTime(seconds)}
-            </Text>
+        {/* Lottie Sound Wave */}
+        <LottieView
+            ref={waveRef}
+            source={require('../../assets/animations/waveform.json')}
+            autoPlay={false}
+            loop
+            style={{
+            width: 900,
+            height: 100,
+            marginVertical: 18,
+            }}
+        />
 
-            <View
-                style={{
-                flexDirection: 'row',
-                marginTop: 28,
-                gap: 28,
-                }}
+        <Text style={{ fontSize: 18, fontWeight: '600' }}>
+            {formatTime(seconds)}
+        </Text>
+
+        <View
+            style={{
+            flexDirection: 'row',
+            marginTop: 28,
+            gap: 28,
+            }}
+        >
+            <TouchableOpacity
+            onPress={stopRecording}
+            style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: '#000',
+                justifyContent: 'center',
+                alignItems: 'center',
+            }}
             >
-                <TouchableOpacity
-                onPress={stopRecording}
-                style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 28,
-                    backgroundColor: '#000',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                }}
-                >
-                <Ionicons name="square" size={20} color="#fff" />
-                </TouchableOpacity>
+            <Ionicons name="square" size={20} color="#fff" />
+            </TouchableOpacity>
 
-                <TouchableOpacity
-                    onPress={isPaused ? resumeRecording : pauseRecording}
-                    style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 28,
-                        backgroundColor: '#D9D9D9',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                    }}
-                    >
-                    <Ionicons
-                        name={isPaused ? 'play' : 'pause'}
-                        size={20}
-                        color="#000"
-                    />
-                </TouchableOpacity>
+            <TouchableOpacity
+            onPress={isPaused ? resumeRecording : pauseRecording}
+            style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: '#D9D9D9',
+                justifyContent: 'center',
+                alignItems: 'center',
+            }}
+            >
+            <Ionicons
+                name={isPaused ? 'play' : 'pause'}
+                size={20}
+                color="#000"
+            />
+            </TouchableOpacity>
+        </View>
+        </Animated.View>
 
-            </View>
-            </>
-        )}
         </View>
     </View>
     );
