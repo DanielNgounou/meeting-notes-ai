@@ -70,6 +70,8 @@ export default function RecordScreen() {
     const [groupName, setGroupName] = useState('');
     const [groups, setGroups] = useState(['SEG 2025', 'Life group']);
 
+    // Stop Guard for stop recording
+    const [isStopping, setIsStopping] = useState(false);
 
 
 
@@ -189,13 +191,19 @@ export default function RecordScreen() {
      STOP RECORDING
      ======================= */
 
-  const stopRecording = async () => {
+  const requestStopRecording = async () => {
+
+    if (isStopping || !recording || showSaveModal) return ;
+
+    setIsStopping(true);
     try {
-      if (!recording) return;
 
 
-      // Stop recording and save file
-      await recording.stopAndUnloadAsync();
+      // pauses recording and opens save modal
+      await recording.pauseAsync();
+      setIsPaused(true)
+      setShowSaveModal(true);//Opens Modal
+
 
       // Get local file URI
       const uri = recording.getURI();
@@ -203,13 +211,10 @@ export default function RecordScreen() {
       // Log URI (later used for saving or uploading)
       console.log('Recording saved at:', uri);
 
-      // Clear recording state
-      setRecording(null);
-      setIsRecording(false);
-      setIsPaused(false);
-      setSeconds(0);
-    } catch (error) {
+    }catch (error) {
       console.error('Failed to stop recording', error);
+    }finally{
+        setIsStopping(false)
     }
   };
 
@@ -248,35 +253,99 @@ export default function RecordScreen() {
      ======================= */
 
     const exitRecording = () => {
-  Alert.alert(
-    'Discard recording?',
-    'Your current recording will be lost.',
-    [
-      {
-        text: 'Cancel',
-        style: 'cancel',
-      },
-      {
-        text: 'Discard',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            if (recording) {
-              await recording.stopAndUnloadAsync();
-            }
-
-            setRecording(null);
-            setIsRecording(false);
-            setIsPaused(false);
-            setSeconds(0);
-          } catch (error) {
-            console.error('Failed to exit recording', error);
-          }
+    Alert.alert(
+        'Discard recording?',
+        'Your current recording will be lost.',
+        [
+        {
+            text: 'Cancel',
+            style: 'cancel',
         },
-      },
-    ]
-  );
-};
+        {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: async () => {
+            try {
+                if (recording) {
+                await recording.stopAndUnloadAsync();
+                }
+
+                setRecording(null);
+                setIsRecording(false);
+                setIsPaused(false);
+                setSeconds(0);
+            } catch (error) {
+                console.error('Failed to exit recording', error);
+            }
+            },
+        },
+        ]
+    );
+    };
+    /*==========SAVE BUTTON ============*/
+    const confirmSaveRecording = async () => {
+    if (!recording) return;
+
+    try {
+        await recording.stopAndUnloadAsync(); // ✅ final stop
+
+        const uri = recording.getURI();
+        console.log('Saved recording at:', uri);
+
+        // TODO: persist metadata (meetingName, groupName)
+
+    } catch (error) {
+        console.error('Failed to save recording', error);
+    } finally {
+        // Reset everything
+        setRecording(null);
+        setIsRecording(false);
+        setIsPaused(false);
+        setSeconds(0);
+        
+        setShowSaveModal(false);
+        resetSaveMeetingData();
+    }
+    };
+
+
+    //==============CANCEL BUTTON resumes recording ===================//
+    const cancelSaveRecording = async () => {
+        if (recording){
+            try{
+                await recording.startAsync();//Resume recording
+                setIsPaused(false);
+            }catch (error){
+                console.error('Failed to resume recording', error);
+            }
+        }
+     
+        setShowSaveModal(false);
+        resetSaveMeetingData();
+    };
+
+
+
+    //Save Meeting Modal Reset variables
+    const resetSaveMeetingData = () => {
+        setMeetingName('');
+        setGroupName('');
+    };
+
+    const handleCancelSaveMeeting = () => {
+        setShowSaveModal(false);
+        resetSaveMeetingData();
+    };
+
+
+    const handleSaveMeeting = () => {
+        // TODO: persist recording + metadata
+
+        setShowSaveModal(false);
+        resetSaveMeetingData();
+    };
+
+
 
 
 
@@ -431,7 +500,7 @@ export default function RecordScreen() {
             }}
         >
             <TouchableOpacity
-            onPress={() => setShowSaveModal(true)}
+            onPress={requestStopRecording}
             style={{
                 width: 56,
                 height: 56,
@@ -488,12 +557,10 @@ export default function RecordScreen() {
             setGroupName={setGroupName}
             groups={groups}
             setGroups={setGroups}
-            onCancel={() => setShowSaveModal(false)}
-            onSave={async () => {
-                await stopRecording();
-                setShowSaveModal(false);
-            }}
+            onCancel={cancelSaveRecording}
+            onSave={confirmSaveRecording}
         />
+
     </View>
 
     );

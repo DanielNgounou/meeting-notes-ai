@@ -1,4 +1,6 @@
 import React from 'react';
+import { Animated, Easing } from 'react-native';
+
 import {
   View,
   Text,
@@ -38,7 +40,30 @@ export default function SaveMeetingModal({
   const [isNewGroup, setIsNewGroup] = React.useState(false);
   const [search, setSearch] = React.useState('');
 
+  const backdropOpacity = React.useRef(new Animated.Value(0)).current;
+  const modalTranslateY = React.useRef(new Animated.Value(40)).current;
+
+
+  const resetModalState = () => {
+    setShowDropdown(false);
+    setIsNewGroup(false);
+    setSearch('');
+  };
+
+
+ 
+  /*========================
+        RESET EFFECT
+  ========================*/
+  React.useEffect(() => {
+  if (!visible) {
+    resetModalState();
+  }
+}, [visible]);
+
+
   if (!visible) return null;
+
 
   return (
     <View
@@ -171,7 +196,9 @@ export default function SaveMeetingModal({
           }}
         >
           <TouchableOpacity
-            onPress={onCancel}
+            onPress={()=>{
+                resetModalState();
+                onCancel();}}
             style={{
               backgroundColor: '#DDD',
               paddingVertical: 12,
@@ -183,7 +210,10 @@ export default function SaveMeetingModal({
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={onSave}
+            onPress={()=>{
+                resetModalState();
+                onSave();
+            }}
             style={{
               backgroundColor: '#000',
               paddingVertical: 12,
