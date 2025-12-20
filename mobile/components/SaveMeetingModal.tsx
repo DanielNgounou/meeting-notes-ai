@@ -43,6 +43,9 @@ export default function SaveMeetingModal({
   const backdropOpacity = React.useRef(new Animated.Value(0)).current;
   const modalTranslateY = React.useRef(new Animated.Value(40)).current;
 
+  // Keep it rendered long enough to animate OUT
+  const [shouldRender, setShouldRender] = React.useState(visible);
+
 
   const resetModalState = () => {
     setShowDropdown(false);
@@ -56,17 +59,67 @@ export default function SaveMeetingModal({
         RESET EFFECT
   ========================*/
   React.useEffect(() => {
-  if (!visible) {
-    resetModalState();
+    if (!visible) {
+        resetModalState();
+    }
+  }, [visible]);
+
+
+
+/*========================
+        ANIMATION IN AND OUT
+  ========================*/
+React.useEffect(() => {
+  if (visible) {
+
+    // ensure modal is mounted
+    setShouldRender(true);
+
+    //reset every time you open
+    backdropOpacity.setValue(0);
+    modalTranslateY.setValue(40);
+
+
+    Animated.parallel([
+      Animated.timing(backdropOpacity, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.spring(modalTranslateY, {
+        toValue: 0,
+        damping: 18,
+        stiffness: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  } else {
+    Animated.parallel([
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalTranslateY, {
+        toValue: 40,
+        duration: 200,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start(({finished}) => {
+        if (finished) setShouldRender(false); //Unmount after animation
+    });
   }
-}, [visible]);
+ }, [visible]);//dependency array to prevent it to run on every rended
 
 
-  if (!visible) return null;
+
+// Visibiity Guard
+  if (!shouldRender) return null;
 
 
   return (
-    <View
+    <Animated.View
       style={{
         position: 'absolute',
         top: 0,
@@ -76,14 +129,16 @@ export default function SaveMeetingModal({
         backgroundColor: 'rgba(0,0,0,0.35)',
         justifyContent: 'center',
         alignItems: 'center',
+        opacity: backdropOpacity,
       }}
     >
-      <View
+      <Animated.View
         style={{
           width: '85%',
           backgroundColor: '#FFF',
           borderRadius: 18,
           padding: 20,
+          transform: [{translateY: modalTranslateY }], // animation
         }}
       >
         <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 14 }}>
@@ -224,7 +279,7 @@ export default function SaveMeetingModal({
             <Text style={{ color: '#FFF' }}>Save</Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </View>
+      </Animated.View>
+    </Animated.View>
   );
 }
