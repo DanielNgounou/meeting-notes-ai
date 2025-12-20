@@ -1,3 +1,10 @@
+//Importing components
+import SaveMeetingModal from '../../components/SaveMeetingModal';
+
+//Import Alert 
+import { Alert } from 'react-native';
+
+
 //Importing Lottie 
 import LottieView from 'lottie-react-native';
 
@@ -56,6 +63,12 @@ export default function RecordScreen() {
     const idleOpacity = useRef(new Animated.Value(1)).current;
     const recordOpacity = useRef(new Animated.Value(0)).current;
 
+    // Component variable
+
+    const [showSaveModal, setShowSaveModal] = useState(false);
+    const [meetingName, setMeetingName] = useState('');
+    const [groupName, setGroupName] = useState('');
+    const [groups, setGroups] = useState(['SEG 2025', 'Life group']);
 
 
 
@@ -230,6 +243,41 @@ export default function RecordScreen() {
         }
     };
 
+    /* =======================
+     EXIT RECORDING
+     ======================= */
+
+    const exitRecording = () => {
+  Alert.alert(
+    'Discard recording?',
+    'Your current recording will be lost.',
+    [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Discard',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            if (recording) {
+              await recording.stopAndUnloadAsync();
+            }
+
+            setRecording(null);
+            setIsRecording(false);
+            setIsPaused(false);
+            setSeconds(0);
+          } catch (error) {
+            console.error('Failed to exit recording', error);
+          }
+        },
+      },
+    ]
+  );
+};
+
 
 
 
@@ -383,7 +431,7 @@ export default function RecordScreen() {
             }}
         >
             <TouchableOpacity
-            onPress={stopRecording}
+            onPress={() => setShowSaveModal(true)}
             style={{
                 width: 56,
                 height: 56,
@@ -413,10 +461,42 @@ export default function RecordScreen() {
                 color="#000"
             />
             </TouchableOpacity>
+
+             <TouchableOpacity
+                onPress={exitRecording}
+                style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: '#f17e7eff',
+                justifyContent: 'center',
+                alignItems: 'center',
+                }}
+            >
+                <Ionicons name="close" size={22} color="#ffffffff" />
+            </TouchableOpacity>
         </View>
         </Animated.View>
 
         </View>
+        {/*==========Save Meeting Modal ===========*/}
+        <SaveMeetingModal
+            visible={showSaveModal}
+            meetingName={meetingName}
+            setMeetingName={setMeetingName}
+            groupName={groupName}
+            setGroupName={setGroupName}
+            groups={groups}
+            setGroups={setGroups}
+            onCancel={() => setShowSaveModal(false)}
+            onSave={async () => {
+                await stopRecording();
+                setShowSaveModal(false);
+            }}
+        />
     </View>
+
     );
+
+
 }
