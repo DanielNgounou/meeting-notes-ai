@@ -54,6 +54,30 @@ export default function SaveMeetingModal({
   };
 
 
+  const [errors, setErrors] = React.useState<{
+    meetingName?: string;
+    groupName?: string;
+  }>({});
+
+  const validate = () => {
+    const newErrors: typeof errors = {};
+
+    if (!meetingName.trim()) {
+        newErrors.meetingName = 'Meeting name is required';
+    }
+
+    if (!groupName.trim()) {
+        newErrors.groupName = 'Group name is required';
+    }
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+
+
+
  
   /*========================
         RESET EFFECT
@@ -61,6 +85,7 @@ export default function SaveMeetingModal({
   React.useEffect(() => {
     if (!visible) {
         resetModalState();
+        setErrors({});
     }
   }, [visible]);
 
@@ -158,6 +183,13 @@ React.useEffect(() => {
           }}
         />
 
+        {errors.meetingName && (
+            <Text style={{ color: 'red', fontSize: 12, marginBottom: 8 }}>
+                {errors.meetingName}
+            </Text>
+        )}
+
+
         {/* Group selector */}
         {!isNewGroup ? (
           <>
@@ -240,7 +272,17 @@ React.useEffect(() => {
               marginTop: 8,
             }}
           />
+          
         )}
+
+        {errors.groupName && (
+            <Text style={{ color: 'red', fontSize: 12, marginTop: 6 }}>
+                {errors.groupName}
+            </Text>
+        )}
+    
+
+        
 
         {/* Actions */}
         <View
@@ -266,7 +308,10 @@ React.useEffect(() => {
 
           <TouchableOpacity
             onPress={()=>{
+                if (!validate()) return;
+
                 resetModalState();
+                setErrors({});
                 onSave();
             }}
             style={{
