@@ -29,3 +29,5 @@ export const initDatabase = async () => {
 
   console.log('✅ SQLite database initialized');
 };
+
+

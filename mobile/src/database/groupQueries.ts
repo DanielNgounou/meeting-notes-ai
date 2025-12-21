@@ -30,3 +30,31 @@ export const getAllGroups = async (): Promise<string[]> => {
   );
   return rows.map(r => r.name);
 };
+
+
+/**
+ * Get all groups with numbers 
+ */
+export type GroupWithCount = {
+  id: number;
+  name: string;
+  count: number;
+};
+
+export const getGroupsWithCount = async (): Promise<GroupWithCount[]> => {
+  const result = await db.getAllAsync<GroupWithCount>(`
+    SELECT 
+      g.id,
+      g.name,
+      COUNT(m.id) as count
+    FROM groups g
+    LEFT JOIN meetings m ON m.group_id = g.id
+    GROUP BY g.id
+    ORDER BY g.name;
+  `);
+
+  return result;
+};
+
+
+
