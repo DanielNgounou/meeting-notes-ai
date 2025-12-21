@@ -32,6 +32,8 @@ import { useState, useEffect, useRef } from 'react';
 
 //Importing database projects
 import { insertOrGetGroup, getAllGroups } from '@/src/database/groupQueries';
+import { insertMeeting } from '@/src/database/meetingQueries';
+
 
 
 export default function RecordScreen() {
@@ -309,27 +311,41 @@ export default function RecordScreen() {
         if (!recording) return;
 
         try {
-            // 1️⃣ Final stop
+            // Stop Recording for real
             await recording.stopAndUnloadAsync();
             const uri = recording.getURI();
 
-            // 2️⃣ Insert or fetch group
+            if(!uri) throw new Error("Recording URI missing");
+
+            // 2️⃣ Ensure group exists
             const groupId = await insertOrGetGroup(groupName);
 
             console.log('Saved recording:', {
             uri,
             meetingName,
+            seconds,
             groupId,
             });
 
-            // 3️⃣ Refresh groups list (important!)
+
+            //InsertMeeting
+            await insertMeeting({
+                title: meetingName,
+                audioUri: uri,
+                duration: seconds,
+                groupId,
+            });
+
+            // 3️⃣ Refresh groups list (dropdown stays updated)
             const updatedGroups = await getAllGroups();
             setGroups(updatedGroups);
+
+            console.log('✅ Meeting saved');
 
             // TODO: insert meeting into meetings table next
 
         } catch (error) {
-            console.error('Failed to save recording', error);
+            console.error('❌ Failed to save meeting:', error);
         } finally {
             // 4️⃣ Reset UI
             setRecording(null);
