@@ -18,8 +18,10 @@ export const initDatabase = async () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       audio_uri TEXT NOT NULL,
-      duration INTEGER,
+      duration INTEGER NOT NULL,
       group_id INTEGER,
+      started_at TEXT,
+      ended_at TEXT,
       created_at TEXT,
       FOREIGN KEY (group_id) REFERENCES groups(id)
     );

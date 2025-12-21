@@ -38,6 +38,7 @@ import { insertMeeting } from '@/src/database/meetingQueries';
 
 export default function RecordScreen() {
 
+
     if (
         Platform.OS === 'android' &&
         UIManager.setLayoutAnimationEnabledExperimental
@@ -48,6 +49,9 @@ export default function RecordScreen() {
   /* =======================
      STATE VARIABLES
      ======================= */
+
+  //Tracking start time
+  const [startedAt, setStartedAt] = useState<string | null>(null);
 
   // Stores the active recording object from Expo
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
@@ -192,6 +196,9 @@ export default function RecordScreen() {
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
       });
+      
+      //set Start time
+      setStartedAt(new Date().toISOString());
 
       // Create a new audio recording
       const { recording } = await Audio.Recording.createAsync(
@@ -311,6 +318,9 @@ export default function RecordScreen() {
         if (!recording) return;
 
         try {
+
+            //Save ending time
+            const endedAt = new Date().toISOString();
             // Stop Recording for real
             await recording.stopAndUnloadAsync();
             const uri = recording.getURI();
@@ -327,12 +337,17 @@ export default function RecordScreen() {
             groupId,
             });
 
+            if(!startedAt){
+                throw new Error('Recording start time missing');
+            }
 
             //InsertMeeting
             await insertMeeting({
                 title: meetingName,
                 audioUri: uri,
                 duration: seconds,
+                startedAt,
+                endedAt,
                 groupId,
             });
 
@@ -341,6 +356,8 @@ export default function RecordScreen() {
             setGroups(updatedGroups);
 
             console.log('✅ Meeting saved');
+            
+
 
             // TODO: insert meeting into meetings table next
 
@@ -382,19 +399,7 @@ export default function RecordScreen() {
         setGroupName('');
     };
 
-    const handleCancelSaveMeeting = () => {
-        setShowSaveModal(false);
-        resetSaveMeetingData();
-    };
-
-
-    const handleSaveMeeting = () => {
-        // TODO: persist recording + metadata
-
-        setShowSaveModal(false);
-        resetSaveMeetingData();
-    };
-
+  
 
 
 

@@ -7,24 +7,44 @@ export const insertMeeting = async ({
   title,
   audioUri,
   duration,
+  startedAt,
+  endedAt,
   groupId,
 }: {
   title: string;
   audioUri: string;
   duration: number;
+  startedAt: string;
+  endedAt: string;
   groupId: number;
 }) => {
   await db.runAsync(
-    `INSERT INTO meetings (
+    `
+    INSERT INTO meetings (
       title,
       audio_uri,
       duration,
       group_id,
+      started_at,
+      ended_at,
       created_at
-    ) VALUES (?, ?, ?, ?, datetime('now'))`,
-    [title, audioUri, duration, groupId]
+    )
+    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+    `,
+    [
+      title,
+      audioUri,
+      duration,
+      groupId,
+      startedAt,
+      endedAt,
+    ]
   );
+  const rows = await db.getAllAsync('SELECT * FROM meetings');
+  console.log(rows);
+
 };
+
 
 /**
  * Fetch all meetings (for later screens)
