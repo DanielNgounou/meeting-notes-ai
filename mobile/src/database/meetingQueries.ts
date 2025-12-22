@@ -67,12 +67,35 @@ export type RecentMeeting = {
   id: number;
   title: string;
   created_at: string;
-  started_at: string;
+  started_at?: string;
   group_name: string;
 };
 
-export const getRecentMeetings = async (): Promise<RecentMeeting[]> => {
-  return await db.getAllAsync<RecentMeeting>(`
+export const getRecentMeetings = async (
+  search?: string
+): Promise<RecentMeeting[]> => {
+  if (search && search.trim().length > 0) {
+    return db.getAllAsync<RecentMeeting>(
+      `
+      SELECT 
+        m.id,
+        m.title,
+        m.created_at,
+        m.started_at,
+        g.name as group_name
+      FROM meetings m
+      JOIN groups g ON g.id = m.group_id
+      WHERE m.title LIKE ?
+         OR g.name LIKE ?
+      ORDER BY m.created_at DESC
+      `,
+      [`%${search}%`, `%${search}%`]
+    );
+  }
+
+  // Default (recent)
+  return db.getAllAsync<RecentMeeting>(
+    `
     SELECT 
       m.id,
       m.title,
@@ -82,8 +105,9 @@ export const getRecentMeetings = async (): Promise<RecentMeeting[]> => {
     FROM meetings m
     JOIN groups g ON g.id = m.group_id
     ORDER BY m.created_at DESC
-    LIMIT 5;
-  `);
+    LIMIT 10
+    `
+  );
 };
 
 

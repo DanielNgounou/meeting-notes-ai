@@ -4,14 +4,38 @@ import { useRouter } from 'expo-router';
 import { getRecentMeetings, RecentMeeting } from '@/src/database/meetingQueries';
 import { Ionicons } from '@expo/vector-icons';
 import { getEnergy } from 'react-native-reanimated/lib/typescript/animation/spring';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+
+
 
 export default function NotesHome() {
   const [recent, setRecent] = useState<RecentMeeting[]>([]);
   const router = useRouter();
+  const [searchText, setSearchText] = useState('');
+  const [searchResults, setSearchResults] = useState<RecentMeeting[]>([]);
 
+  //Reloads the information in the app
+  useFocusEffect(
+    useCallback(() => {
+        loadRecent();
+    }, [])
+  );
+
+  //Load Search results when typing
   useEffect(() => {
-    loadRecent();
-  }, []);
+    if (searchText.trim().length === 0) {
+        setSearchResults([]);
+        return;
+    }
+
+    getRecentMeetings(searchText).then(setSearchResults);
+
+  }, [searchText]);
+
+
+
+
 
   const loadRecent = async () => {
     const data = await getRecentMeetings();
@@ -40,79 +64,145 @@ export default function NotesHome() {
         <Ionicons name="search" size={18} color="#777" />
         <TextInput
           placeholder="Search past meeting notes here"
+          placeholderTextColor={"#999"}
+          onChangeText={setSearchText}
           style={{ marginLeft: 10, flex: 1 }}
         />
       </View>
 
-      {/* Recent Meetings */}
-      <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
-        Recent Meetings Notes
-      </Text>
+      {searchText.trim().length > 0 ? (
+        /* 🔍 SEARCH MODE */
+        <>
+        {searchResults.length === 0 && (
+        <Text
+            style={{
+            color: '#999',
+            textAlign: 'center',
+            marginTop: 20,
+            fontSize: 14,
+            }}
+        >
+            No recordings found.
+        </Text>
+        )}
 
-      <View style={{ height: 110 }}>
         <FlatList
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            data={recent}
+            data={searchResults}
             keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={{ paddingRight: 8 }}
+            showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
             <TouchableOpacity
                 style={{
-                backgroundColor: '#e6e6e6',
-                borderRadius: 14,
-                padding: 12,
-                marginRight: 12,
-                width: 160,
-                height: 90,              // 🔑 control card height
-                justifyContent: 'center' // 🔑 vertical alignment
+                    backgroundColor: '#F4F4F4',
+                    borderRadius: 14,
+                    padding: 14,
+                    marginBottom: 12,
                 }}
-            >
-                <Text
-                numberOfLines={2}
-                style={{ fontWeight: '600' }}
                 >
-                {item.title}
+                <Text
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    style={{ fontWeight: '700', fontSize: 15 }}
+                >
+                    {item.title}
                 </Text>
 
-                <Text
-                style={{ color: '#777', marginTop: 4, fontSize: 12 }}
-                >
-                {new Date(item.created_at).toDateString()}
+                <Text style={{ color: '#777', marginTop: 4, fontSize: 13 }}>
+                    {item.group_name} ·{' '}
+                    {new Date(item.created_at).toLocaleDateString()}
                 </Text>
             </TouchableOpacity>
-            )}
+        )}
         />
-        </View>
+    </>
+    ) : (
+        /* 🏠 NORMAL DASHBOARD MODE */
+        <>
+            {/* Recent Meetings */}
+            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
+            Recent Meetings Notes
+            </Text>
 
+            {recent.length === 0 ? (
+            <View
+                style={{
+                height: 90,
+                backgroundColor: '#F4F4F4',
+                borderRadius: 14,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 8,
+                }}
+            >
+                <Text style={{ color: '#777', textAlign: 'center', fontSize: 13 }}>
+                Your recent recordings will be present over here.
+                </Text>
+            </View>
+            ) : (
+            <View style={{ height: 110 }}>
+                <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                data={recent}
+                keyExtractor={(item) => item.id.toString()}
+                contentContainerStyle={{ paddingRight: 8 }}
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                    style={{
+                        backgroundColor: '#e6e6e6',
+                        borderRadius: 14,
+                        padding: 12,
+                        marginRight: 12,
+                        width: 160,
+                        height: 90,
+                        justifyContent: 'center',
+                    }}
+                    >
+                    <Text
+                        numberOfLines={2}
+                        ellipsizeMode="tail"
+                        style={{ fontWeight: '600' }}
+                    >
+                        {item.title}
+                    </Text>
 
-      {/* View all notes */}
-      <TouchableOpacity
-        onPress={() => router.push('/notes/groups')}
-        style={{ backgroundColor: '#ccccccff',marginTop: 12 }}
-      >
-        <Text style={{ fontWeight: '600' }}>View all notes</Text>
-      </TouchableOpacity>
+                    <Text style={{ color: '#777', marginTop: 4, fontSize: 12 }}>
+                        {new Date(item.created_at).toDateString()}
+                    </Text>
+                    </TouchableOpacity>
+                )}
+                />
+            </View>
+            )}
 
-      {/* Tasks (placeholder for now) */}
-      <Text style={{ fontSize: 16, fontWeight: '600', marginTop: 24 }}>
-        Task to be achieved
-      </Text>
+            {/* View all notes */}
+            <TouchableOpacity
+            onPress={() => router.push('/notes/groups')}
+            style={{ marginTop: 5 }}
+            >
+            <Text style={{ fontWeight: '600' }}>View all notes</Text>
+            </TouchableOpacity>
 
-      {/* Mock task item */}
-      <View
-        style={{
-          backgroundColor: '#F4F4F4',
-          borderRadius: 14,
-          padding: 14,
-          marginTop: 10,
-        }}
-      >
-        <Text style={{ fontWeight: '600' }}>Meet Dr Snevans</Text>
-        <Text style={{ color: '#777', marginTop: 4 }}>
-          17:06 · Today · Life group
-        </Text>
-      </View>
+            {/* Tasks */}
+            <Text style={{ fontSize: 16, fontWeight: '600', marginTop: 24 }}>
+            Task to be achieved
+            </Text>
+
+            <View
+            style={{
+                backgroundColor: '#F4F4F4',
+                borderRadius: 14,
+                padding: 14,
+                marginTop: 10,
+            }}
+            >
+            <Text style={{ fontWeight: '600' }}>Meet Dr Snevans</Text>
+            <Text style={{ color: '#777', marginTop: 4 }}>
+                17:06 · Today · Life group
+            </Text>
+            </View>
+        </>
+        )}
     </View>
   );
 }
