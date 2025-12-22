@@ -47,8 +47,6 @@ The application emphasizes a **smooth recording experience**, **clean UI**, and 
 ---
 
 
----
-
 ## 🗃️ Data Model (Planned)
 
 The application is designed to store recordings with metadata:
@@ -75,7 +73,7 @@ The application is designed to store recordings with metadata:
 npm install
 npx expo start
 
-
+---
 ## 🛠️ Future Improvements
 - Persistent storage using SQLite
 - Playback screen for saved recordings
@@ -83,6 +81,7 @@ npx expo start
 - Cloud sync and backup
 - Analytics and meeting history
 
+---
 ## 👤 Author
 Daniel Ngounou Ngounou
 Software Engineering Student
