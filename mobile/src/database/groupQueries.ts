@@ -38,23 +38,22 @@ export const getAllGroups = async (): Promise<string[]> => {
 export type GroupWithCount = {
   id: number;
   name: string;
-  count: number;
+  recordings: number;
 };
 
 export const getGroupsWithCount = async (): Promise<GroupWithCount[]> => {
-  const result = await db.getAllAsync<GroupWithCount>(`
+  return db.getAllAsync<GroupWithCount>(`
     SELECT 
       g.id,
       g.name,
-      COUNT(m.id) as count
+      COUNT(m.id) as recordings
     FROM groups g
     LEFT JOIN meetings m ON m.group_id = g.id
     GROUP BY g.id
-    ORDER BY g.name;
+    ORDER BY g.name ASC
   `);
-
-  return result;
 };
+
 
 
 

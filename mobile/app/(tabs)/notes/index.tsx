@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getEnergy } from 'react-native-reanimated/lib/typescript/animation/spring';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
-
+import { getGroupsWithCount, GroupWithCount } from '@/src/database/groupQueries';
 
 
 export default function NotesHome() {
@@ -14,6 +14,8 @@ export default function NotesHome() {
   const router = useRouter();
   const [searchText, setSearchText] = useState('');
   const [searchResults, setSearchResults] = useState<RecentMeeting[]>([]);
+  const [view, setView] = useState<'dashboard' | 'groups'>('dashboard');
+
 
   //Reloads the information in the app
   useFocusEffect(
@@ -23,15 +25,37 @@ export default function NotesHome() {
   );
 
   //Load Search results when typing
-  useEffect(() => {
+    useEffect(() => {
     if (searchText.trim().length === 0) {
         setSearchResults([]);
         return;
     }
 
-    getRecentMeetings(searchText).then(setSearchResults);
+    const search = async () => {
+        const data = await getRecentMeetings(searchText);
+        setSearchResults(data);
+    };
 
-  }, [searchText]);
+    search();
+    }, [searchText]);
+
+    // Importing the group query + type
+    const [groups, setGroups] = useState<GroupWithCount[]>([]);
+
+    //Load groups when switching to "groups" view
+
+    useEffect(() => {
+        if (view === 'groups') {
+            loadGroups();
+        }
+        }, [view]);
+
+        const loadGroups = async () => {
+        const data = await getGroupsWithCount();
+        setGroups(data);
+    };
+
+
 
 
 
@@ -70,53 +94,55 @@ export default function NotesHome() {
         />
       </View>
 
-      {searchText.trim().length > 0 ? (
-        /* 🔍 SEARCH MODE */
+      {/* 🔍 SEARCH MODE */}
+        {searchText.trim().length > 0 && (
         <>
-        {searchResults.length === 0 && (
-        <Text
-            style={{
-            color: '#999',
-            textAlign: 'center',
-            marginTop: 20,
-            fontSize: 14,
-            }}
-        >
-            No recordings found.
-        </Text>
-        )}
-
-        <FlatList
-            data={searchResults}
-            keyExtractor={(item) => item.id.toString()}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-            <TouchableOpacity
+            {searchResults.length === 0 ? (
+            <Text
                 style={{
+                color: '#999',
+                textAlign: 'center',
+                marginTop: 20,
+                fontSize: 14,
+                }}
+            >
+                No recordings found.
+            </Text>
+            ) : (
+            <FlatList
+                data={searchResults}
+                keyExtractor={(item) => item.id.toString()}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => (
+                <TouchableOpacity
+                    style={{
                     backgroundColor: '#F4F4F4',
                     borderRadius: 14,
                     padding: 14,
                     marginBottom: 12,
-                }}
+                    }}
                 >
-                <Text
+                    <Text
                     numberOfLines={1}
                     ellipsizeMode="tail"
                     style={{ fontWeight: '700', fontSize: 15 }}
-                >
+                    >
                     {item.title}
-                </Text>
+                    </Text>
 
-                <Text style={{ color: '#777', marginTop: 4, fontSize: 13 }}>
+                    <Text style={{ color: '#777', marginTop: 4, fontSize: 13 }}>
                     {item.group_name} ·{' '}
                     {new Date(item.created_at).toLocaleDateString()}
-                </Text>
-            </TouchableOpacity>
+                    </Text>
+                </TouchableOpacity>
+                )}
+            />
+            )}
+        </>
         )}
-        />
-    </>
-    ) : (
-        /* 🏠 NORMAL DASHBOARD MODE */
+
+
+        {searchText.length === 0 && view === 'dashboard' && (
         <>
             {/* Recent Meetings */}
             <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 12 }}>
@@ -142,10 +168,9 @@ export default function NotesHome() {
             <View style={{ height: 110 }}>
                 <FlatList
                 horizontal
-                showsHorizontalScrollIndicator={false}
                 data={recent}
                 keyExtractor={(item) => item.id.toString()}
-                contentContainerStyle={{ paddingRight: 8 }}
+                showsHorizontalScrollIndicator={false}
                 renderItem={({ item }) => (
                     <TouchableOpacity
                     style={{
@@ -158,11 +183,7 @@ export default function NotesHome() {
                         justifyContent: 'center',
                     }}
                     >
-                    <Text
-                        numberOfLines={2}
-                        ellipsizeMode="tail"
-                        style={{ fontWeight: '600' }}
-                    >
+                    <Text numberOfLines={2} style={{ fontWeight: '600' }}>
                         {item.title}
                     </Text>
 
@@ -175,10 +196,10 @@ export default function NotesHome() {
             </View>
             )}
 
-            {/* View all notes */}
+            {/* 👇 THIS is the trigger */}
             <TouchableOpacity
-            onPress={() => router.push('/notes/groups')}
-            style={{ marginTop: 5 }}
+            onPress={() => setView('groups')}
+            style={{ marginTop: 6 }}
             >
             <Text style={{ fontWeight: '600' }}>View all notes</Text>
             </TouchableOpacity>
@@ -203,6 +224,45 @@ export default function NotesHome() {
             </View>
         </>
         )}
+
+
+        {searchText.length === 0 && view === 'groups' && (
+        <>
+            <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 4 }}>
+            All meetings
+            </Text>
+
+            <Text style={{ color: '#888', marginBottom: 16 }}>
+            Click on a group to view its recordings
+            </Text>
+
+            <FlatList
+            data={groups}
+            keyExtractor={(item) => item.id.toString()}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+                <TouchableOpacity
+                onPress={() => router.push(`/notes/group/${item.id}`)}
+                style={{
+                    backgroundColor: '#F4F4F4',
+                    borderRadius: 14,
+                    padding: 16,
+                    marginBottom: 12,
+                }}
+                >
+                <Text style={{ fontWeight: '700', fontSize: 16 }}>
+                    {item.name}
+                </Text>
+                <Text style={{ color: '#777', marginTop: 4 }}>
+                    {item.recordings} recordings
+                </Text>
+                </TouchableOpacity>
+            )}
+            />
+        </>
+        )}
+
+
     </View>
   );
 }
