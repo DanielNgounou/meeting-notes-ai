@@ -1,4 +1,4 @@
-import { View, Text, TextInput, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, BackHandler } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { getRecentMeetings, RecentMeeting } from '@/src/database/meetingQueries';
@@ -15,6 +15,7 @@ export default function NotesHome() {
   const [searchText, setSearchText] = useState('');
   const [searchResults, setSearchResults] = useState<RecentMeeting[]>([]);
   const [view, setView] = useState<'dashboard' | 'groups'>('dashboard');
+
 
 
   //Reloads the information in the app
@@ -54,6 +55,24 @@ export default function NotesHome() {
         const data = await getGroupsWithCount();
         setGroups(data);
     };
+
+    /**
+     * Back button
+     */
+
+    useEffect(() => {
+        const onBackPress = () => {
+            if (view === 'groups') {
+            setView('dashboard');
+            return true; // prevent app exit
+            }
+            return false;
+        };
+
+        const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => sub.remove();
+    }, [view]);
+
 
 
 
@@ -198,15 +217,15 @@ export default function NotesHome() {
 
             {/* 👇 THIS is the trigger */}
             <TouchableOpacity
-            onPress={() => setView('groups')}
-            style={{ marginTop: 6 }}
+                onPress={() => setView('groups')}
+                style={{ marginTop: 6 }}
             >
-            <Text style={{ fontWeight: '600' }}>View all notes</Text>
+                <Text style={{ fontWeight: '600' }}>View all notes</Text>
             </TouchableOpacity>
 
             {/* Tasks */}
             <Text style={{ fontSize: 16, fontWeight: '600', marginTop: 24 }}>
-            Task to be achieved
+                Task to be achieved
             </Text>
 
             <View
@@ -218,7 +237,7 @@ export default function NotesHome() {
             }}
             >
             <Text style={{ fontWeight: '600' }}>Meet Dr Snevans</Text>
-            <Text style={{ color: '#777', marginTop: 4 }}>
+            <Text style={{ color: '#777', marginTop: 4 }}>       
                 17:06 · Today · Life group
             </Text>
             </View>
@@ -262,7 +281,34 @@ export default function NotesHome() {
         </>
         )}
 
+        {/* 🔙 Floating Back Button */}
+        {view === 'groups' && (
+            <TouchableOpacity
+                onPress={() => setView('dashboard')}
+                activeOpacity={0.85}
+                style={{
+                position: 'absolute',
+                bottom: 110, // 👈 above bottom tab bar
+                right: 20,
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                backgroundColor: '#E0E0E0',
+                justifyContent: 'center',
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOpacity: 0.15,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 4, // Android shadow
+                }}
+            >
+                <Ionicons name="arrow-back" size={22} color="#111" />
+            </TouchableOpacity>
+        )}
 
+
+    
     </View>
   );
 }
