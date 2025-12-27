@@ -18,9 +18,6 @@ import { LayoutAnimation, Platform, UIManager } from 'react-native';
 // Expo Audio API (used for microphone recording)
 import { Audio } from 'expo-av';
 
-// React hooks
-// import { useState, useEffect } from 'react';
-
 // Icons (mic, pause, stop)
 import { Ionicons } from '@expo/vector-icons';
 
